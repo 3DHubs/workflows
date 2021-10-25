@@ -31,7 +31,6 @@ jobs:
       - name: terraform fmt
         id: fmt
         run: terraform fmt -check
-        continue-on-error: true
 
       - name: terraform init
         id: init
