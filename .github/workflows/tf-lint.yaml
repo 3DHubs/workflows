@@ -1,0 +1,38 @@
+name: tf-lint
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        type: string
+        required: true
+      aws_region:
+        type: string
+        required: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: validate
+    defaults:
+      run:
+        working-directory: ${{ inputs.path }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: hashicorp/setup-terraform@v1
+
+      - name: terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: terraform init
+        id: init
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        id: validate
+        env:
+          AWS_REGION: ${{ inputs.aws_region }}
+        run: terraform validate -no-color
