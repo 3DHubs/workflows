@@ -17,10 +17,12 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    name: validate
+    name: Lint Terraform
     defaults:
       run:
         working-directory: ${{ inputs.path }}
+    env:
+      AWS_REGION: ${{ inputs.aws_region }}
     steps:
       - uses: actions/checkout@v2
 
@@ -28,16 +30,16 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
-      - name: terraform fmt
-        id: fmt
-        run: terraform fmt -check
+      - name: fmt
+        run: terraform fmt -check -recursive
 
-      - name: terraform init
-        id: init
-        run: terraform init -backend=false
-
-      - name: terraform validate
-        id: validate
-        env:
-          AWS_REGION: ${{ inputs.aws_region }}
-        run: terraform validate -no-color
+      - name: validate
+        run: |
+          set -o errexit -o pipefail
+          for dir in $(find . -name provider.tf -exec dirname '{}' \;); do
+            echo -e "\n$dir -----------------------------------"
+            cd "$dir"
+              terraform init -backend=false >/dev/null
+              terraform validate -no-color
+            cd -
+          done
