@@ -4,12 +4,15 @@ on:
   workflow_call:
     inputs:
       path:
+        description: "Path to directory containing Terraform code"
         type: string
         required: true
       aws_region:
+        description: "AWS region to use"
         type: string
         required: true
       terraform_version:
+        description: "Terraform version"
         type: string
         required: false
         default: '0.14.4'
@@ -36,7 +39,7 @@ jobs:
       - name: validate
         run: |
           set -o errexit -o pipefail
-          for dir in $(find . -name provider.tf -exec dirname '{}' \;); do
+          find . -name provider.tf -exec dirname '{}' ';' | while read -r dir; do
             echo -e "\n$dir -----------------------------------"
             cd "$dir"
               terraform init -backend=false >/dev/null

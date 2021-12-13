@@ -31,7 +31,7 @@ jobs:
         id: create-ecr
         run: |
           # remove GitHub owner and lowercase the repo name
-          repo="$(basename "${{ github.repository }}" | tr 'A-Z' 'a-z')"
+          repo="$(basename "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
 
           # create the repository if it doesn't exist
           aws ecr describe-repositories \
