@@ -1,0 +1,152 @@
+name: ecr-build
+
+on:
+  workflow_call:
+    inputs:
+      build-args:
+        description: "Build arguments for the Docker build"
+        required: false
+        type: string
+      use-cache:
+        description: "Set to false to disable Docker build caching"
+        default: true
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  create:
+    name: ECR Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: eu-west-1
+          role-to-assume: arn:aws:iam::312805905296:role/gha-ecr-build
+
+      - name: Create ECR repo
+        id: create-ecr
+        run: |
+          # remove GitHub owner and lowercase the repo name
+          repo="$(basename "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+
+          # create the repository if it doesn't exist
+          aws ecr describe-repositories \
+            --repository-names "$repo" \
+            --output table \
+          || aws ecr create-repository --repository-name "$repo"
+
+          # set the repository pull policy
+          cat <<EOF >/tmp/repo-policy.json
+          {
+            "Version" : "2012-10-17",
+            "Statement" : [ {
+              "Sid" : "AllowPull",
+              "Effect" : "Allow",
+              "Principal" : "*",
+              "Action" : [ "ecr:GetDownloadUrlForLayer", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:BatchGetImage", "ecr:BatchCheckLayerAvailability" ],
+              "Condition" : {
+                "ForAnyValue:StringLike" : {
+                  "aws:PrincipalOrgPaths" : "o-nzcbc33q4i/*"
+                }
+              }
+            } ]
+          }
+          EOF
+          aws ecr set-repository-policy --repository-name "$repo" --policy-text file:///tmp/repo-policy.json
+
+          # set the repository lifecycle policy
+          cat <<EOF >/tmp/lifecycle-policy.json
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep 5 versions of important tags",
+                "selection": {
+                  "tagStatus": "tagged",
+                  "tagPrefixList": [
+                    "main",
+                    "master"
+                  ],
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": {
+                  "type": "expire"
+                }
+              },
+              {
+                "rulePriority": 2,
+                "description": "Expire untagged images older than 90 days",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "sinceImagePushed",
+                  "countUnit": "days",
+                  "countNumber": 90
+                },
+                "action": {
+                  "type": "expire"
+                }
+              },
+              {
+                "rulePriority": 3,
+                "description": "Keep total count to 100 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 100
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+          EOF
+          aws ecr put-lifecycle-policy --repository-name "$repo" --lifecycle-policy-text file:///tmp/lifecycle-policy.json
+
+          uri="$(aws ecr describe-repositories --repository-names "$repo" --query 'repositories[0].repositoryUri' --output text)"
+          echo "::set-output name=repository::$uri"
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Setup Docker buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Setup cache for docker buildx
+        id: buildx-cache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx
+
+      - name: Docker metadata
+        id: docker-metadata
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ steps.create-ecr.outputs.repository }}
+          tags: |
+            type=ref,event=branch
+
+      - name: Docker build
+        id: docker-build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          build-args: ${{ inputs.build-args }}
+          tags: ${{ steps.docker-metadata.outputs.tags }}
+          labels: ${{ steps.docker-metadata.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: ${{ inputs.use-cache && 'type=local,dest=/tmp/.buildx-cache-new,mode=max' || null }}
+
+      - name: Move cache
+        if: inputs.use-cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

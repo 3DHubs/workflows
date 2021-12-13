@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: actionlint
+        run: |
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.6.8/actionlint_1.6.8_linux_amd64.tar.gz \
+          | tar -xzf- actionlint
+          chmod +x actionlint
+          ./actionlint
