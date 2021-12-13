@@ -37,9 +37,16 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: validate
+        env:
+          default_branch: ${{ github.event.repository.default_branch }}
         run: |
-          set -o errexit -o pipefail
-          find . -name provider.tf -exec dirname '{}' ';' | while read -r dir; do
+          git fetch origin --quiet
+
+          git diff --name-only --diff-filter=d "origin/$default_branch" \
+          | grep '\.tf$' \
+          | xargs -n1 dirname \
+          | sort -u \
+          | while read -r dir; do
             echo -e "\n$dir -----------------------------------"
             cd "$dir"
               terraform init -backend=false >/dev/null
