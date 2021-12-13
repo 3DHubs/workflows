@@ -3,29 +3,21 @@ name: tf-lint
 on:
   workflow_call:
     inputs:
-      path:
-        description: "Path to directory containing Terraform code"
-        type: string
-        required: true
-      aws_region:
-        description: "AWS region to use"
-        type: string
-        required: true
       terraform_version:
         description: "Terraform version"
         type: string
         required: false
         default: '0.14.4'
+      commit_fmt:
+        description: "Set to false to only check formatting"
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     name: Lint Terraform
-    defaults:
-      run:
-        working-directory: ${{ inputs.path }}
-    env:
-      AWS_REGION: ${{ inputs.aws_region }}
     steps:
       - uses: actions/checkout@v2
 
@@ -34,12 +26,33 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
 
       - name: fmt
-        run: terraform fmt -check -recursive
+        env:
+          commit_fmt: ${{ inputs.commit_fmt }}
+        run: |
+          if test "$commit_fmt" = "true"; then
+            terraform fmt -recursive
+            if test -n "$(git status --porcelain)"; then
+              git config --global user.name "GitHub Actions"
+              git config --global user.email "actions@hubs.com"
+              git commit -am "auto: terraform fmt"
+              git push
+            fi
+          else
+            terraform fmt -check -recursive
+          fi
 
       - name: validate
+        env:
+          default_branch: ${{ github.event.repository.default_branch }}
+          AWS_REGION: eu-west-1
         run: |
-          set -o errexit -o pipefail
-          find . -name provider.tf -exec dirname '{}' ';' | while read -r dir; do
+          git fetch origin --quiet
+
+          git diff --name-only --diff-filter=d "origin/$default_branch" \
+          | grep '\.tf$' \
+          | xargs -n1 dirname \
+          | sort -u \
+          | while read -r dir; do
             echo -e "\n$dir -----------------------------------"
             cd "$dir"
               terraform init -backend=false >/dev/null
