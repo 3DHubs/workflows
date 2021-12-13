@@ -11,15 +11,26 @@ on:
         description: "Set to false to disable Docker build caching"
         default: true
         type: boolean
+    outputs:
+      image-ref-tag:
+        description: "Full reference to built image with version tag"
+        value: ${{ jobs.build.outputs.image-repo }}:${{ jobs.build.outputs.image-tag }}
+      image-ref-sha:
+        description: "Full reference to built image with SHA digest"
+        value: ${{ jobs.build.outputs.image-repo }}@${{ jobs.build.outputs.image-sha }}
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  create:
+  build:
     name: ECR Build
     runs-on: ubuntu-latest
+    outputs:
+      image-repo: ${{ steps.create-ecr.outputs.repository }}
+      image-tag: ${{ steps.docker-metadata.outputs.version }}
+      image-sha: ${{ steps.docker-build.outputs.digest }}
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
