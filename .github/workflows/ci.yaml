@@ -13,4 +13,4 @@ jobs:
           curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.6.8/actionlint_1.6.8_linux_amd64.tar.gz \
           | tar -xzf- actionlint
           chmod +x actionlint
-          ./actionlint
+          ./actionlint -ignore '"outputs" for "workflow_call"'
