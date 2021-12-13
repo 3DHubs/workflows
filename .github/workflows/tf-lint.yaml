@@ -16,6 +16,11 @@ on:
         type: string
         required: false
         default: '0.14.4'
+      commit_fmt:
+        description: "Set to false to only check formatting"
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   lint:
@@ -34,7 +39,20 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
 
       - name: fmt
-        run: terraform fmt -check -recursive
+        env:
+          commit_fmt: ${{ inputs.commit_fmt }}
+        run: |
+          if test "$commit_fmt" = "true"; then
+            terraform fmt -recursive
+            if test -n "$(git status --porcelain)"; then
+              git config --global user.name "GitHub Actions"
+              git config --global user.email "actions@hubs.com"
+              git commit -am "auto: terraform fmt"
+              git push
+            fi
+          else
+            terraform fmt -check -recursive
+          fi
 
       - name: validate
         env:
