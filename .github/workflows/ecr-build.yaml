@@ -12,12 +12,15 @@ on:
         default: true
         type: boolean
     outputs:
-      image-ref-tag:
-        description: "Full reference to built image with version tag"
-        value: ${{ jobs.build.outputs.image-repo }}:${{ jobs.build.outputs.image-tag }}
-      image-ref-sha:
-        description: "Full reference to built image with SHA digest"
-        value: ${{ jobs.build.outputs.image-repo }}@${{ jobs.build.outputs.image-sha }}
+      image-repo:
+        description: "Image repository name"
+        value: ${{ jobs.build.outputs.image-repo }}
+      image-tag:
+        description: "Image tag"
+        value: ${{ jobs.build.outputs.image-tag }}
+      image-sha:
+        description: "Image digest"
+        value: ${{ jobs.build.outputs.image-sha }}
 
 permissions:
   id-token: write
@@ -119,8 +122,7 @@ jobs:
           EOF
           aws ecr put-lifecycle-policy --repository-name "$repo" --lifecycle-policy-text file:///tmp/lifecycle-policy.json
 
-          uri="$(aws ecr describe-repositories --repository-names "$repo" --query 'repositories[0].repositoryUri' --output text)"
-          echo "::set-output name=repository::$uri"
+          echo "::set-output name=repository::$repo"
 
       - name: Login to Amazon ECR
         id: login-ecr
