@@ -11,6 +11,10 @@ on:
         description: "Set to false to disable Docker build caching"
         default: true
         type: boolean
+      tag-suffix:
+        description: "Suffix to append to the image tag"
+        required: false
+        type: string
     outputs:
       image-repo:
         description: "Image repository name"
@@ -145,7 +149,7 @@ jobs:
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ steps.create-ecr.outputs.repository }}
           tags: |
-            type=ref,event=branch
+            type=ref,event=branch,suffix=${{ inputs.tag-suffix }}
 
       - name: Docker build
         id: docker-build
