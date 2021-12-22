@@ -19,6 +19,10 @@ on:
         description: "Custom path to Dockerfile"
         required: false
         type: string
+      target:
+        description: "Target Docker stage to build"
+        required: false
+        type: string
     outputs:
       image-repo:
         description: "Image repository name"
@@ -162,6 +166,7 @@ jobs:
           push: true
           file: ${{ inputs.dockerfile }}
           build-args: ${{ inputs.build-args }}
+          target: ${{ inputs.target }}
           tags: ${{ steps.docker-metadata.outputs.tags }}
           labels: ${{ steps.docker-metadata.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
