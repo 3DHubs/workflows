@@ -23,6 +23,22 @@ on:
         description: "Target Docker stage to build"
         required: false
         type: string
+      lfs:
+        description: "Requires Git LFS checkout"
+        required: false
+        type: boolean
+        default: false
+      push:
+        description: "Set to false to not push the image"
+        required: false
+        type: boolean
+        default: true
+      create-repo:
+        description: "Set to false to skip creating the repository"
+        required: false
+        type: boolean
+        default: true
+
     outputs:
       image-repo:
         description: "Image repository name"
@@ -47,6 +63,12 @@ jobs:
       image-tag: ${{ steps.docker-metadata.outputs.version }}
       image-sha: ${{ steps.docker-build.outputs.digest }}
     steps:
+      - name: Checkout LFS
+        uses: actions/checkout@v2
+        if: inputs.lfs
+        with:
+          lfs: true
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -55,6 +77,7 @@ jobs:
 
       - name: Create ECR repo
         id: create-ecr
+        if: inputs.create-repo
         run: |
           # remove GitHub owner and lowercase the repo name
           repo="$(basename "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
@@ -163,14 +186,15 @@ jobs:
         id: docker-build
         uses: docker/build-push-action@v2
         with:
-          push: true
-          file: ${{ inputs.dockerfile }}
           build-args: ${{ inputs.build-args }}
-          target: ${{ inputs.target }}
-          tags: ${{ steps.docker-metadata.outputs.tags }}
-          labels: ${{ steps.docker-metadata.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: ${{ inputs.use-cache && 'type=local,dest=/tmp/.buildx-cache-new,mode=max' || null }}
+          context: ${{ inputs.lfs && '.' || null }}
+          file: ${{ inputs.dockerfile }}
+          labels: ${{ steps.docker-metadata.outputs.labels }}
+          push: ${{ inputs.push }}
+          tags: ${{ steps.docker-metadata.outputs.tags }}
+          target: ${{ inputs.target }}
 
       - name: Move cache
         if: inputs.use-cache
