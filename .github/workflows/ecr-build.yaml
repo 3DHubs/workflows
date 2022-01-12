@@ -54,6 +54,10 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: eu-west-1
+  AWS_MGMT_ACCT_ID: "312805905296"
+
 jobs:
   build:
     name: ECR Build
@@ -72,8 +76,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-region: eu-west-1
-          role-to-assume: arn:aws:iam::312805905296:role/gha-ecr-build
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_MGMT_ACCT_ID }}:role/gha-ecr-build
 
       - name: Create ECR repo
         id: create-ecr
@@ -87,6 +91,11 @@ jobs:
             --repository-names "$repo" \
             --output table \
           || aws ecr create-repository --repository-name "$repo"
+
+          # tag the repository
+          aws ecr tag-resource \
+            --resource-arn "arn:aws:ecr:$AWS_REGION:$AWS_MGMT_ACCT_ID:repository/$repo" \
+            --tags "Key=Repo,Value=${{ github.server_url }}/${{ github.repository }}"
 
           # set the repository pull policy
           cat <<EOF >/tmp/repo-policy.json
