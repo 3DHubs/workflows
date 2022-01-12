@@ -139,12 +139,12 @@ jobs:
               },
               {
                 "rulePriority": 20,
-                "description": "Expire any images older than 90 days",
+                "description": "Expire untagged images older than 30 days",
                 "selection": {
-                  "tagStatus": "any",
+                  "tagStatus": "untagged",
                   "countType": "sinceImagePushed",
                   "countUnit": "days",
-                  "countNumber": 90
+                  "countNumber": 30
                 },
                 "action": {
                   "type": "expire"
