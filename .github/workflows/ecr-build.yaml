@@ -112,26 +112,36 @@ jobs:
           {
             "rules": [
               {
-                "rulePriority": 1,
-                "description": "Keep 5 versions of important tags",
+                "rulePriority": 10,
+                "description": "Keep 25 versions of main tag",
                 "selection": {
                   "tagStatus": "tagged",
-                  "tagPrefixList": [
-                    "main",
-                    "master"
-                  ],
+                  "tagPrefixList": ["main"],
                   "countType": "imageCountMoreThan",
-                  "countNumber": 5
+                  "countNumber": 25
                 },
                 "action": {
                   "type": "expire"
                 }
               },
               {
-                "rulePriority": 2,
-                "description": "Expire untagged images older than 90 days",
+                "rulePriority": 11,
+                "description": "Keep 25 versions of master tag",
                 "selection": {
-                  "tagStatus": "untagged",
+                  "tagStatus": "tagged",
+                  "tagPrefixList": ["master"],
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 25
+                },
+                "action": {
+                  "type": "expire"
+                }
+              },
+              {
+                "rulePriority": 20,
+                "description": "Expire any images older than 90 days",
+                "selection": {
+                  "tagStatus": "any",
                   "countType": "sinceImagePushed",
                   "countUnit": "days",
                   "countNumber": 90
@@ -141,12 +151,12 @@ jobs:
                 }
               },
               {
-                "rulePriority": 3,
-                "description": "Keep total count to 100 images",
+                "rulePriority": 30,
+                "description": "Keep total count to 1000 images",
                 "selection": {
                   "tagStatus": "any",
                   "countType": "imageCountMoreThan",
-                  "countNumber": 100
+                  "countNumber": 1000
                 },
                 "action": {
                   "type": "expire"
