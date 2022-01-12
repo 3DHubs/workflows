@@ -38,6 +38,10 @@ on:
         required: false
         type: boolean
         default: true
+      override-name:
+        description: "Override ECR repository name"
+        required: false
+        type: string
 
     outputs:
       image-repo:
@@ -84,7 +88,7 @@ jobs:
         if: inputs.create-repo
         run: |
           # remove GitHub owner and lowercase the repo name
-          repo="$(basename "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+          repo="$(basename "${{ inputs.override-name || github.repository }}" | tr '[:upper:]' '[:lower:]')"
 
           # create the repository if it doesn't exist
           aws ecr describe-repositories \
@@ -95,7 +99,10 @@ jobs:
           # tag the repository
           aws ecr tag-resource \
             --resource-arn "arn:aws:ecr:$AWS_REGION:$AWS_MGMT_ACCT_ID:repository/$repo" \
-            --tags "Key=Repo,Value=${{ github.server_url }}/${{ github.repository }}"
+            --tags \
+              "Key=GithubRepo,Value=${{ github.server_url }}/${{ github.repository }}" \
+              "Key=GithubUpdated,Value=$(date -Iseconds)" \
+              "Key=GithubWorkflow,Value=ecr-build"
 
           # set the repository pull policy
           cat <<EOF >/tmp/repo-policy.json
