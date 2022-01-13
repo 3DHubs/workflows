@@ -73,6 +73,12 @@ jobs:
         with:
           lfs: true
 
+      - name: Random sleep
+        run: |
+          delay="$((1 + $RANDOM % 10))"
+          echo "Sleeping for $delay seconds"
+          sleep "$delay"
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
