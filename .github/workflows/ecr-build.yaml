@@ -80,7 +80,7 @@ jobs:
 
       - name: Random sleep
         run: |
-          delay="$((1 + $RANDOM % 10))"
+          delay="$((1 + RANDOM % 10))"
           echo "Sleeping for $delay seconds"
           sleep "$delay"
 
