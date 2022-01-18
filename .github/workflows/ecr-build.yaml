@@ -39,6 +39,11 @@ on:
         type: boolean
         default: true
 
+    secrets:
+      build-args:
+        description: "Secret build arguments for the Docker build"
+        required: false
+
     outputs:
       image-repo:
         description: "Image repository name"
@@ -75,7 +80,7 @@ jobs:
 
       - name: Random sleep
         run: |
-          delay="$((1 + $RANDOM % 10))"
+          delay="$((1 + RANDOM % 10))"
           echo "Sleeping for $delay seconds"
           sleep "$delay"
 
@@ -202,6 +207,15 @@ jobs:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx
 
+      - name: Definitions
+        id: defs
+        env:
+          CLEAR_BUILD_ARGS: ${{ inputs.build-args }}
+          SECRET_BUILD_ARGS: ${{ secrets.build-args }}
+        run: |
+          json_args="$(echo -e "$CLEAR_BUILD_ARGS\n$SECRET_BUILD_ARGS" | jq --raw-input --slurp .)"
+          echo "::set-output name=json-build-args::$json_args"
+
       - name: Docker metadata
         id: docker-metadata
         uses: docker/metadata-action@v3
@@ -214,7 +228,7 @@ jobs:
         id: docker-build
         uses: docker/build-push-action@v2
         with:
-          build-args: ${{ inputs.build-args }}
+          build-args: ${{ fromJSON(steps.defs.outputs.json-build-args) }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: ${{ inputs.use-cache && 'type=local,dest=/tmp/.buildx-cache-new,mode=max' || null }}
           context: ${{ inputs.lfs && '.' || null }}
