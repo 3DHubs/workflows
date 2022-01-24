@@ -200,7 +200,15 @@ jobs:
           CLEAR_BUILD_ARGS: ${{ inputs.build-args }}
           SECRET_BUILD_ARGS: ${{ secrets.build-args }}
         run: |
-          json_args="$(echo -e "$CLEAR_BUILD_ARGS\n$SECRET_BUILD_ARGS" | jq --raw-input --slurp .)"
+          sentry_release_name="$(date +"%Y%m%d_%H%M").$(echo "$GITHUB_SHA" | cut -c-9)"
+
+          cat <<EOF >build-args
+          $CLEAR_BUILD_ARGS
+          $SECRET_BUILD_ARGS
+          RELEASE_NAME=$sentry_release_name
+          EOF
+
+          json_args="$(jq --raw-input --slurp . < build-args)"
           echo "::set-output name=json-build-args::$json_args"
 
       - name: Docker metadata
