@@ -23,6 +23,10 @@ on:
         description: "Target Docker stage to build"
         required: false
         type: string
+      context:
+        description: "Custom context for docker build"
+        required: false
+        type: string
       lfs:
         description: "Requires Git LFS checkout"
         required: false
@@ -72,11 +76,11 @@ jobs:
       image-tag: ${{ steps.docker-metadata.outputs.version }}
       image-sha: ${{ steps.docker-build.outputs.digest }}
     steps:
-      - name: Checkout LFS
+      - name: Checkout
         uses: actions/checkout@v2
-        if: inputs.lfs
+        if: ${{ inputs.context || inputs.lfs }}
         with:
-          lfs: true
+          lfs: ${{ inputs.lfs || false }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -226,7 +230,7 @@ jobs:
           build-args: ${{ fromJSON(steps.defs.outputs.json-build-args) }}
           cache-from: type=gha
           cache-to: ${{ inputs.use-cache && format('type=gha,scope={0},mode=max', github.workflow) || null }}
-          context: ${{ inputs.lfs && '.' || null }}
+          context: ${{ inputs.lfs && (inputs.context || '.') || null }}
           file: ${{ inputs.dockerfile }}
           labels: ${{ steps.docker-metadata.outputs.labels }}
           push: ${{ inputs.push }}
