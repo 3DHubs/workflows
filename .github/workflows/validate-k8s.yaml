@@ -1,0 +1,44 @@
+name: validate-k8s
+
+on:
+  workflow_call:
+    inputs:
+      vars:
+        description: "Extra vars to pass to ytt: key=value per line"
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  ytt:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/3dhubs/tools:master
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Template Kubernetes config
+        env:
+          VALUES: ${{ inputs.vars }}
+        run: |
+          if test ! -e k8s/base; then
+            echo "FAIL: k8s/base is missing"
+            exit 1
+          fi
+
+          args=""
+          for value in $VALUES; do
+            args="$args -v$value"
+          done
+
+          echo "Testing base config:"
+          ytt -f k8s/base $args >/dev/null
+          echo OK
+
+          if test -d k8s/overlays; then
+            for overlay in k8s/overlays/*; do
+              echo "Testing base with overlay $overlay:"
+              ytt -f k8s/base -f "$overlay" $args >/dev/null
+              echo OK
+            done
+          fi
