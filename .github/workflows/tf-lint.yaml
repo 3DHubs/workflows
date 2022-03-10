@@ -7,7 +7,7 @@ on:
         description: "Terraform version"
         type: string
         required: false
-        default: '0.14.4'
+        default: '1.1.6'
       commit_fmt:
         description: "Set to false to only check formatting"
         type: boolean
