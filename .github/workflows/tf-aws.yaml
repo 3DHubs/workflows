@@ -102,7 +102,7 @@ jobs:
         env:
           scope: ${{ github.ref == 'refs/heads/main' && 'apply' || 'plan' }}
         run: |
-          cat <<EOF >provider_override.tf
+          cat <<EOF >_provider_override.tf
           terraform {
             backend "s3" {}
           }
@@ -121,6 +121,9 @@ jobs:
             }
           }
           EOF
+          cat <<EOF >_workflow.tfvars
+          boundary_policy_arn = "arn:aws:iam::${{ matrix.env.aws_account_id }}:policy/gha/gha_${{ needs.init.outputs.repository }}"
+          EOF
 
           terraform init \
             -backend-config="bucket=tfstate.mgmt.hubs.com" \
@@ -134,7 +137,7 @@ jobs:
         working-directory: ${{ inputs.path }}
         env:
           tfvars: vars/${{ matrix.env.name }}.tfvars
-        run: terraform plan -no-color -out=tfplan -var-file="$tfvars"
+        run: terraform plan -no-color -out=tfplan -var-file="$tfvars" -var-file="_workflow.tfvars"
       - name: apply
         working-directory: ${{ inputs.path }}
         if: ${{ github.ref == 'refs/heads/main' }}
