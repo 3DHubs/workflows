@@ -243,3 +243,11 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' }}
         working-directory: ${{ inputs.path }}
         run: if test -f tfplan; then terraform apply -no-color tfplan; fi
+
+  complete:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [run]
+    steps:
+      - if: ${{ needs.run.result != 'success' }}
+        run: exit 1
