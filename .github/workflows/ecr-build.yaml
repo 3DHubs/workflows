@@ -117,7 +117,7 @@ jobs:
               "Sid" : "AllowPull",
               "Effect" : "Allow",
               "Principal" : "*",
-              "Action" : [ "ecr:GetDownloadUrlForLayer", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:BatchGetImage", "ecr:BatchCheckLayerAvailability" ],
+              "Action" : [ "ecr:ListImages", "ecr:GetDownloadUrlForLayer", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:BatchGetImage", "ecr:BatchCheckLayerAvailability" ],
               "Condition" : {
                 "ForAnyValue:StringLike" : {
                   "aws:PrincipalOrgPaths" : "o-nzcbc33q4i/*"
