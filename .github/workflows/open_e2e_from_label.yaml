@@ -1,0 +1,69 @@
+name: Open e2e on label
+
+jobs:
+  open_e2e_env:
+    env:
+      ENVS_REPO_DIR: '${{ github.workspace }}/envs'
+
+    if: contains( github.event.pull_request.labels.*.name, 'e2e' )
+    name: Open End-to-End env
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+
+    steps:
+      - name: Checkout service-frontend repo
+        uses: actions/checkout@v2
+        with:
+          path: ${{ github.workspace }}
+
+      - name: Checkout envs repo
+        uses: actions/checkout@v2
+        with:
+          repository: 3DHubs/envs
+          path: ${{ env.ENVS_REPO_DIR }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: masterы
+          submodules: false
+
+      - name: Update env properties
+        working-directory: ${{ github.workspace }}
+        run: |
+          case '${{ github.repository }}' in
+
+            '3DHubs/service-frontend')
+            line=13
+            ;;
+
+            '3DHubs/service-supply')
+            line=17
+            ;;
+
+            '3DHubs/service-model-repository')
+            line=21
+            ;;
+
+            '3DHubs/e2e')
+            line=26
+            ;;
+
+          esac
+
+          cd ${{ env.ENVS_REPO_DIR }}
+          line+='s/main/${{ github.head_ref || github.ref_name }}/g'
+          sed -i $line env.yaml
+
+      - name: Commit changes for env
+        working-directory: ${{ env.ENVS_REPO_DIR }}
+        run: |
+          git config user.name 'tester'
+          git config user.email 'tester@hubs.com'
+          git add -A
+          git commit -m "test workflow"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          path: ${{ env.ENVS_REPO_DIR }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          branch: ${{ github.head_ref || github.ref_name }}

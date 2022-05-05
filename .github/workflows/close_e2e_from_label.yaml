@@ -1,0 +1,48 @@
+name: Close e2e on label
+
+
+jobs:
+  close_e2e_env:
+    env:
+      ENVS_REPO_DIR: '${{ github.workspace }}/envs'
+
+    if: "!contains( github.event.pull_request.labels.*.name, 'e2e' )"
+    name: Close End-to-End environment
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+
+    steps:
+
+      - name: Checkout svc_fe repo
+        uses: actions/checkout@v2
+        with:
+          path: ${{ github.workspace }}
+
+      - name: Get PR env number
+        id: get_pr_num
+        working-directory: ${{ github.workspace }}
+        run: |
+          pr_num=$(gh api -X GET \
+          -H "Accept: application/vnd.github.v3+json" \
+          -f state="open" \
+          /repos/3DHubs/envs/pulls | yq '.[] | select(.head.ref == "'$GITHUB_HEAD_REF'")' | yq '.number')
+          if [ -z $pr_num ]
+          then
+          echo "PR not found"
+          echo "Debug: PR number $pr_num"
+          exit 141
+          fi
+          echo "Debug: found open PR for e2e: $pr_num"
+          echo "::set-output name=pr_number::$pr_num"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+
+      - name: Close PR env number
+        uses: peter-evans/close-pull@v2
+        with:
+          pull-request-number: ${{ steps.get_pr_num.outputs.pr_number }}
+          repository: 3DHubs/envs
+          comment: Auto-closing pull request for e2e because label was removed.
+          delete-branch: true
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
