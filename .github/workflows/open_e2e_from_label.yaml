@@ -50,7 +50,7 @@ jobs:
           esac
 
           cd ${{ env.ENVS_REPO_DIR }}
-          line+='s/main/${{ github.head_ref || github.ref_name }}/g'
+          line+='s/main/${ github.ref_name }}/g'
           sed -i $line env.yaml
 
       - name: Commit changes for env
@@ -66,4 +66,4 @@ jobs:
         with:
           path: ${{ env.ENVS_REPO_DIR }}
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-          branch: ${{ github.head_ref || github.ref_name }}
+          branch: ${{ github.ref_name }}
