@@ -65,3 +65,12 @@ jobs:
       terraform_version: "1.0"
       commit_fmt: false
 ```
+
+### `tf-aws`
+
+Runs `terraform plan` for pull requests and `terraform apply` for pushes to the default branch.
+The workflow uses GitHub's OIDC integration to authenticate to AWS during workflow runs.
+That means we can allocate AWS access at the repository level and have a standardised way to plan and apply our Terraform changes.
+How this works is a bit complex, but the README in the [infra-github-roles](https://github.com/3DHubs/infra-github-roles) repository explains the usage.
+
+This workflow has optional inputs, see the [tf-aws](.github/workflows/tf-aws.yaml) workflow for details.
