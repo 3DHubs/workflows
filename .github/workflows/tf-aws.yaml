@@ -13,6 +13,11 @@ on:
         type: string
         required: false
         default: "."
+      account:
+        description: "Only run for a specific account"
+        type: string
+        required: false
+        default: ""
 
 permissions:
   id-token: write
@@ -52,11 +57,14 @@ jobs:
       - name: Get accounts
         id: query
         working-directory: ${{ inputs.path }}
+        env:
+          account_override: ${{ inputs.account }}
         run: |
           # Accounts in our AWS organization
           aws organizations list-accounts | jq -c '[.Accounts[] | {name:.Name|ascii_downcase|gsub(" ";"-"), aws_account_id:.Id}]' | tee org_accounts.json
           # Accounts that have vars files in the repo
-          find vars -name '*.tfvars' | jq -Rs '[split("\n")[] | select(length > 0) | sub("vars/"; "") | sub(".tfvars"; "")]' | tee var_accounts.json
+          glob="${account_override:-*}.tfvars"
+          find vars -name "$glob" | jq -Rs '[split("\n")[] | select(length > 0) | sub("vars/"; "") | sub(".tfvars"; "")]' | tee var_accounts.json
           # Find the overlap
           accounts="$(python -c "import json; org = json.load(open('org_accounts.json')); var = json.load(open('var_accounts.json')); print(json.dumps([a for a in org if a['name'] in var]))")"
           echo "::set-output name=accounts::$accounts"
