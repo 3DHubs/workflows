@@ -136,9 +136,7 @@ jobs:
             }
           }
           EOF
-          cat <<EOF >_workflow.tfvars
-          boundary_policy_arn = "arn:aws:iam::${{ matrix.env.aws_account_id }}:policy/gha/gha_${{ needs.init.outputs.repository }}"
-          EOF
+          echo TF_VAR_boundary_policy_arn="arn:aws:iam::${{ matrix.env.aws_account_id }}:policy/gha/gha_${{ needs.init.outputs.repository }}" >> $GITHUB_ENV
 
           terraform init \
             -backend-config="bucket=tfstate.mgmt.hubs.com" \
@@ -150,9 +148,7 @@ jobs:
 
       - name: plan
         working-directory: ${{ inputs.path }}
-        env:
-          tfvars: vars/${{ matrix.env.name }}.tfvars
-        run: terraform plan -no-color -out=tfplan -var-file="$tfvars" -var-file="_workflow.tfvars"
+        run: terraform plan -no-color -out=tfplan -var-file="vars/${{ matrix.env.name }}.tfvars"
       - name: apply
         if: ${{ github.ref == 'refs/heads/main' }}
         working-directory: ${{ inputs.path }}
